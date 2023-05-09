@@ -1,6 +1,12 @@
 # Non-invasive-Muscle-Machine-Interface-Open-Source-Project-Wearable-Forearm-Myoelectrical-Orthosis-
 Non-invasive Muscle-Machine Interface Open Source Project: Wearable Forearm Myoelectrical Orthosis (MES-FES)
 
+
+Myoelectrical signal sensor (EMG):
+
+https://github.com/LENeR-UEL/AD8232_aquisition_circuit 
+
+
 3D print models:
 
 Forearm cover - https://skfb.ly/ovJpN
