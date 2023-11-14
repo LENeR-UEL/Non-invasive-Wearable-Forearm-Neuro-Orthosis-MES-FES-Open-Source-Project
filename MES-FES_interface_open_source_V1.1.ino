@@ -1,5 +1,7 @@
+//Proj_MES-FES_Interface - Version 1.1 arduino UNO/Nano 26 Out 2023 using bitalino sensor and tilt sensor//
+//if upload error, use in linux terminal sudo chmod a+rw /dev/ttyUSB0
+//https://github.com/Joao-Pedro-ML/TCC/blob/main/Refactored/Refactored.ino
 
-//Proj_MES-FES_Interface - Version 1.1 arduino UNO/Nano 24 Abr 2023 using bitalino sensor and tilt sensor
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <math.h>
@@ -7,64 +9,15 @@
 char blueToothVal; 
 
 // tilt sensor
-int tilt = 12; // tilt sensor - adjust the sensitivity in embedded potentiometer 
+int tilt = 2; // tilt sensor - adjust the sensitivity in embedded potentiometer 
 
 //MES
-float MValue=0; //MES - Myo Electrical Signal
+float MValue = 0;  //MES - Myo Electrical Signal
 float Voltage;
 float x = 0;
-float difficult = 16; // Difficult to App inventor (16%)
-float filteredval=0;
-float filteredval1=0;
-float filteredval2=0;
-float filteredval3=0;
-float filteredval4=0;
-float filteredval5=0;
-float filteredval6=0;
-float filteredval7=0;
-float filteredval8=0;
-float filteredval9=0;
-float filteredval10=0;
-float filteredval11=0;
-float filteredval12=0;
-float filteredval13=0;
-float filteredval14=0;
-float filteredval15=0;
-float filteredval16=0;
-float filteredval17=0;
-float filteredval18=0;
-float filteredval19=0;
-float filteredval20=0;
-float filteredval21=0;
-float filteredval22=0;
-float filteredval23=0;
-float filteredval24=0;
-float filteredval25=0;
-float filteredval26=0;
-float filteredval27=0;
-float filteredval28=0;
-float filteredval29=0;
-float filteredval30=0;
-float filteredval31=0;
-float filteredval32=0;
-float filteredval33=0;
-float filteredval34=0;
-float filteredval35=0;
-float filteredval36=0;
-float filteredval37=0;
-float filteredval38=0;
-float filteredval39=0;
-float filteredval40=0;
-float filteredval41=0;
-float filteredval42=0;
-float filteredval43=0;
-float filteredval44=0;
-float filteredval45=0;
-float filteredval46=0;
-float filteredval47=0;
-float filteredval48=0;
-float filteredval49=0;
-float filteredval50=0;
+float difficult = 16;  // Difficult to App inventor (16%)
+float filteredval[50];
+
 
 float MES01=0;
 float MES02=0;
@@ -85,7 +38,7 @@ float MES_002B=0;
 //MES Filter
 const float f2   = 40.0;  //Cutoff frequency in Hz
 const float f1   = 10.0;  //Cutoff frequency in Hz
-const float sampling_time = 0.01; //Sampling time in seconds.
+const float sampling_time = 0.001; //Sampling time in seconds.
 IIR::ORDER  order  = IIR::ORDER::OD3; // Butterworth - Oder (OD1 to OD4)
 IIR::TYPE typeHP =  IIR::TYPE::HIGHPASS;
 Filter fHP(f1, sampling_time, order, typeHP); //configure high pass filter (40 Hz)
@@ -99,24 +52,24 @@ int cont =1;
 int time_on=121; //initial FES time (1s)
 float Tfreq = 50000; //20Hz - to FES rise time
 
-void setup()
-{
-MValue = (analogRead(A0)); //MES
-pinMode(12, INPUT);
-pinMode(6, OUTPUT); //LED red
-  
-digitalWrite(6, HIGH);
-delay(1000);   
-digitalWrite(6, LOW);  
-delay(1000);
-digitalWrite(6, HIGH);
-delay(1000);  
-digitalWrite(6, LOW);  
-delay(1000);
-digitalWrite(6, HIGH);
-delay(1000);   
-digitalWrite(6, LOW);  
- 
+void setup() {
+  MValue = (analogRead(A7));  //MES
+  pinMode(12, INPUT);
+  pinMode(6, OUTPUT);  //LED red
+
+  digitalWrite(6, HIGH);
+  delay(1000);
+  digitalWrite(6, LOW);
+  delay(1000);
+  digitalWrite(6, HIGH);
+  delay(1000);
+  digitalWrite(6, LOW);
+  delay(1000);
+  digitalWrite(6, HIGH);
+  delay(1000);
+  digitalWrite(6, LOW);
+
+
 Serial.begin(9600); //Initialize Serial Monitor
 
 //FES to H bridge
@@ -124,435 +77,47 @@ pinMode(9,OUTPUT); //FES_1
 pinMode(10,OUTPUT); //FES_2
 }
 
-void MES_00() //read samples
+
+void MES_00()  //read samples
 {
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval1 = fLP.filterIn(Voltage);
-filteredval1 = fHP.filterIn(filteredval1);
-filteredval1 =abs(filteredval1);
-filteredval1 =filteredval1*100;
-delay(1);
+  for (int i = 0; i < 50; i++) {
+    MValue = (analogRead(A7));
+    Voltage = ((((3.3 / 1024.0) * (MValue))));
+    filteredval[i] = fLP.filterIn(Voltage);
+    filteredval[i] = fHP.filterIn(filteredval[i]);
+    filteredval[i] = abs(filteredval[i]);
+    filteredval[i] = filteredval[i] * 100;
+    delay(1);
+  }
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval2 = fLP.filterIn(Voltage);
-filteredval2 = fHP.filterIn(filteredval2);
-filteredval2 =abs(filteredval2);
-filteredval2 =filteredval2*100;
-delay(1);
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval3 = fLP.filterIn(Voltage);
-filteredval3 = fHP.filterIn(filteredval3);
-filteredval3 =abs(filteredval3);
-filteredval3 =filteredval3*100;
-delay(1);
+ //10ms average -  build AWL to calculate the threshold
+  MES01 = (filteredval[0] + filteredval[1] + filteredval[2] + filteredval[3] + filteredval[4] + filteredval[5] + filteredval[6] + filteredval[7] + filteredval[8] + filteredval[9]) / 10;
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval4 = fLP.filterIn(Voltage);
-filteredval4 = fHP.filterIn(filteredval4);
-filteredval4 =abs(filteredval4);
-filteredval4 =filteredval4*100;
-delay(1);
+  //10ms average -  build AWL to calculate the threshold
+  MES02 = (filteredval[10] + filteredval[11] + filteredval[12] + filteredval[13] + filteredval[14] + filteredval[15] + filteredval[16] + filteredval[17] + filteredval[18] + filteredval[19]) / 10;
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval5 = fLP.filterIn(Voltage);
-filteredval5 = fHP.filterIn(filteredval5);
-filteredval5 =abs(filteredval5);
-filteredval5 =filteredval5*100;
-delay(1);
+  //10ms average -  build AWL to calculate the threshold
+  MES03 = (filteredval[20] + filteredval[21] + filteredval[22] + filteredval[23] + filteredval[24] +  filteredval[25] + filteredval[26] + filteredval[27] + filteredval[28] + filteredval[29]) / 10;
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval6 = fLP.filterIn(Voltage);
-filteredval6 = fHP.filterIn(filteredval6);
-filteredval6 =abs(filteredval6);
-filteredval6 =filteredval6*100;
-delay(1);
+  //10ms average -  build AWL to calculate the threshold
+  MES04 = (filteredval[30] + filteredval[31] + filteredval[32] + filteredval[33] + filteredval[34] + filteredval[35] + filteredval[36] + filteredval[37] + filteredval[38] + filteredval[39]) / 10;
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval7 = fLP.filterIn(Voltage);
-filteredval7 = fHP.filterIn(filteredval7);
-filteredval7 =abs(filteredval7);
-filteredval7 =filteredval7*100;
-delay(1);
+  //10ms average -  build AWL to calculate the threshold
+  MES05 = (filteredval[40] + filteredval[41] + filteredval[42] + filteredval[43] + filteredval[44] + filteredval[45] + filteredval[46] + filteredval[47] + filteredval[48] + filteredval[49]) / 10;
 
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval8 = fLP.filterIn(Voltage);
-filteredval8 = fHP.filterIn(filteredval8);
-filteredval8 =abs(filteredval8);
-filteredval8 =filteredval8*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval9 = fLP.filterIn(Voltage);
-filteredval9 = fHP.filterIn(filteredval9);
-filteredval9 =abs(filteredval9);
-filteredval9 =filteredval9*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval10 = fLP.filterIn(Voltage);
-filteredval10 = fHP.filterIn(filteredval10);
-filteredval10 =abs(filteredval10);
-filteredval10 =filteredval10*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval11 = fLP.filterIn(Voltage);
-filteredval11 = fHP.filterIn(filteredval11);
-filteredval11 =abs(filteredval11);
-filteredval11 =filteredval11*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval12 = fLP.filterIn(Voltage);
-filteredval12 = fHP.filterIn(filteredval12);
-filteredval12 =abs(filteredval12);
-filteredval12 =filteredval12*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval13 = fLP.filterIn(Voltage);
-filteredval13 = fHP.filterIn(filteredval13);
-filteredval13 =abs(filteredval13);
-filteredval13 =filteredval13*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval14 = fLP.filterIn(Voltage);
-filteredval14 = fHP.filterIn(filteredval14);
-filteredval14 =abs(filteredval14);
-filteredval14 =filteredval14*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval15 = fLP.filterIn(Voltage);
-filteredval15 = fHP.filterIn(filteredval15);
-filteredval15 =abs(filteredval15);
-filteredval15 =filteredval15*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval16 = fLP.filterIn(Voltage);
-filteredval16 = fHP.filterIn(filteredval16);
-filteredval16 =abs(filteredval16);
-filteredval16 =filteredval16*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval17 = fLP.filterIn(Voltage);
-filteredval17 = fHP.filterIn(filteredval17);
-filteredval17 =abs(filteredval17);
-filteredval17 =filteredval17*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval18 = fLP.filterIn(Voltage);
-filteredval18 = fHP.filterIn(filteredval18);
-filteredval18 =abs(filteredval18);
-filteredval18 =filteredval18*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval19 = fLP.filterIn(Voltage);
-filteredval19 = fHP.filterIn(filteredval19);
-filteredval19 =abs(filteredval19);
-filteredval19 =filteredval19*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval20 = fLP.filterIn(Voltage);
-filteredval20 = fHP.filterIn(filteredval20);
-filteredval20 =abs(filteredval20);
-filteredval20 =filteredval20*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval21 = fLP.filterIn(Voltage);
-filteredval21 = fHP.filterIn(filteredval21);
-filteredval21 =abs(filteredval21);
-filteredval21 =filteredval21*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval22 = fLP.filterIn(Voltage);
-filteredval22 = fHP.filterIn(filteredval22);
-filteredval22 =abs(filteredval22);
-filteredval22 =filteredval22*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval23 = fLP.filterIn(Voltage);
-filteredval23 = fHP.filterIn(filteredval23);
-filteredval23 =abs(filteredval23);
-filteredval23 =filteredval23*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval24 = fLP.filterIn(Voltage);
-filteredval24 = fHP.filterIn(filteredval24);
-filteredval24 =abs(filteredval24);
-filteredval24 =filteredval24*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval25 = fLP.filterIn(Voltage);
-filteredval25 = fHP.filterIn(filteredval25);
-filteredval25 =abs(filteredval25);
-filteredval25 =filteredval25*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval26 = fLP.filterIn(Voltage);
-filteredval26 = fHP.filterIn(filteredval26);
-filteredval26 =abs(filteredval26);
-filteredval26 =filteredval26*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval27 = fLP.filterIn(Voltage);
-filteredval27 = fHP.filterIn(filteredval27);
-filteredval27 =abs(filteredval27);
-filteredval27 =filteredval27*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval28 = fLP.filterIn(Voltage);
-filteredval28 = fHP.filterIn(filteredval28);
-filteredval28 =abs(filteredval28);
-filteredval28 =filteredval28*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval29 = fLP.filterIn(Voltage);
-filteredval29 = fHP.filterIn(filteredval29);
-filteredval29 =abs(filteredval29);
-filteredval29 =filteredval29*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval30 = fLP.filterIn(Voltage);
-filteredval30 = fHP.filterIn(filteredval30);
-filteredval30 =abs(filteredval30);
-filteredval30 =filteredval30*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval31 = fLP.filterIn(Voltage);
-filteredval31 = fHP.filterIn(filteredval31);
-filteredval31 =abs(filteredval31);
-filteredval31 =filteredval31*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval32 = fLP.filterIn(Voltage);
-filteredval32 = fHP.filterIn(filteredval32);
-filteredval32 =abs(filteredval32);
-filteredval32 =filteredval32*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval33 = fLP.filterIn(Voltage);
-filteredval33 = fHP.filterIn(filteredval33);
-filteredval33 =abs(filteredval33);
-filteredval33 =filteredval33*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval34 = fLP.filterIn(Voltage);
-filteredval34 = fHP.filterIn(filteredval34);
-filteredval34 =abs(filteredval34);
-filteredval34 =filteredval34*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval35 = fLP.filterIn(Voltage);
-filteredval35 = fHP.filterIn(filteredval35);
-filteredval35 =abs(filteredval35);
-filteredval35 =filteredval35*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval36 = fLP.filterIn(Voltage);
-filteredval36 = fHP.filterIn(filteredval36);
-filteredval36 =abs(filteredval36);
-filteredval36 =filteredval36*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval37 = fLP.filterIn(Voltage);
-filteredval37 = fHP.filterIn(filteredval37);
-filteredval37 =abs(filteredval37);
-filteredval37 =filteredval37*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval38 = fLP.filterIn(Voltage);
-filteredval38 = fHP.filterIn(filteredval38);
-filteredval38 =abs(filteredval38);
-filteredval38 =filteredval38*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval39 = fLP.filterIn(Voltage);
-filteredval39 = fHP.filterIn(filteredval39);
-filteredval39 =abs(filteredval39);
-filteredval39 =filteredval39*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval40 = fLP.filterIn(Voltage);
-filteredval40 = fHP.filterIn(filteredval40);
-filteredval40 =abs(filteredval40);
-filteredval40 =filteredval40*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval41 = fLP.filterIn(Voltage);
-filteredval41 = fHP.filterIn(filteredval41);
-filteredval41 =abs(filteredval41);
-filteredval41 =filteredval41*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval42 = fLP.filterIn(Voltage);
-filteredval42 = fHP.filterIn(filteredval42);
-filteredval42 =abs(filteredval42);
-filteredval42 =filteredval42*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval43 = fLP.filterIn(Voltage);
-filteredval43 = fHP.filterIn(filteredval43);
-filteredval43 =abs(filteredval43);
-filteredval43 =filteredval43*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval44 = fLP.filterIn(Voltage);
-filteredval44 = fHP.filterIn(filteredval44);
-filteredval44 =abs(filteredval44);
-filteredval44 =filteredval44*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval45 = fLP.filterIn(Voltage);
-filteredval45 = fHP.filterIn(filteredval45);
-filteredval45 =abs(filteredval45);
-filteredval45 =filteredval45*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval46 = fLP.filterIn(Voltage);
-filteredval46 = fHP.filterIn(filteredval46);
-filteredval46 =abs(filteredval46);
-filteredval46 =filteredval46*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval47 = fLP.filterIn(Voltage);
-filteredval47 = fHP.filterIn(filteredval47);
-filteredval47 =abs(filteredval47);
-filteredval47 =filteredval47*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval48 = fLP.filterIn(Voltage);
-filteredval48 = fHP.filterIn(filteredval48);
-filteredval48 =abs(filteredval48);
-filteredval48 =filteredval48*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval49 = fLP.filterIn(Voltage);
-filteredval49 = fHP.filterIn(filteredval49);
-filteredval49 =abs(filteredval49);
-filteredval49 =filteredval49*100;
-delay(1);
-
-MValue = (analogRead(A0)); 
-Voltage = ((((3.3/ 1024.0) *(MValue))));
-float filteredval50 = fLP.filterIn(Voltage);
-filteredval50 = fHP.filterIn(filteredval50);
-filteredval50 =abs(filteredval50);
-filteredval50 =filteredval50*100;
-delay(1);
-
-//10ms average -  build AWL to calculate the threshold
-MES01 = (filteredval1+filteredval2+filteredval3+filteredval4+filteredval5+filteredval6+filteredval7+filteredval8+filteredval9+filteredval10)/10;   
-
-//10ms average -  build AWL to calculate the threshold
-MES02 = (filteredval11+filteredval12+filteredval13+filteredval14+filteredval15+filteredval16+filteredval17+filteredval18+filteredval19+filteredval20)/10; 
-
-//10ms average -  build AWL to calculate the threshold
-MES03 = (filteredval21+filteredval22+filteredval23+filteredval24+filteredval25+filteredval26+filteredval27+filteredval28+filteredval29+filteredval30)/10; 
-
-//10ms average -  build AWL to calculate the threshold
-MES04 = (filteredval31+filteredval32+filteredval33+filteredval34+filteredval35+filteredval36+filteredval37+filteredval38+filteredval39+filteredval40)/10; 
-
-//10ms average -  build AWL to calculate the threshold
-MES05 = (filteredval41+filteredval42+filteredval43+filteredval44+filteredval45+filteredval46+filteredval47+filteredval48+filteredval49+filteredval50)/10; //must be adjusted to each MES sensor.
-  
-MES01 = MES01*100; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
-MES02 = MES02*100; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
-MES03 = MES03*100; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
-MES04 = MES04*100; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
-MES05 = MES05*100; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
+MES01 = MES01*1; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
+MES02 = MES02*1; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
+MES03 = MES03*1; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
+MES04 = MES04*1; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
+MES05 = MES05*1; //inserted 2022 - if use other EMG sensor, the gain must be adjusted
 
 //MES_X - create average 50ms (like root mean square)
 MES_X = (MES01+MES02+MES03+MES04+MES05)/10; //must be adjusted to each MES sensor.
-
+//JJJ sensor divide 100, Bitalino sensor divide 1.
 // values must be between 1 and 3 during rest and greater than 10 during contraction.
 
-tilt = digitalRead(12);
+tilt = digitalRead(2);
 }
 
 void fes_r(){
@@ -647,7 +212,7 @@ Serial.println(MES2);
 
 
 
-if (MES2 >= MESth && MES2 <= 60 && flag==0 && MESth > 3 && MES2 >= 3 && tilt == 0)//01/17/2023 REMOVED "&& MES2 <= 2*MESth"
+if (MES2 >= MESth && MES2 <= 60 && flag==0 && MESth > 0.3 && MES2 >= 0.4 && tilt == 0)//01/17/2023 REMOVED "&& MES2 <= 2*MESth"
 {
 //digitalWrite(6, LOW);//LED red - off
 Serial.write('p');//To App inventor
@@ -693,7 +258,7 @@ delay(4000); //Do not remove, or the FES interference will create an infinity lo
 
 //PWM increase
 if (blueToothVal=='v' && flag==0)
-{intensity=intensity+125; // keep 5 to great amplifier and 100 to small. 
+{intensity=intensity+25; // keep 5 to great amplifier and 100 to small. 
 digitalWrite(6, HIGH); //red led
 delay(50);
 digitalWrite(6, LOW);
@@ -701,7 +266,7 @@ blueToothVal=0;}
 
 //PWM decrease
 if (blueToothVal=='c' && flag==0)
-{intensity=intensity-125; // keep 5 to great amplifier and 100 to small. 
+{intensity=intensity-25; // keep 5 to great amplifier and 100 to small. 
 if(intensity <=4)
 {intensity= 1;}
 digitalWrite(6, HIGH); //red led
@@ -753,5 +318,3 @@ delay(50);
 digitalWrite(6, LOW);
 blueToothVal=0;}
 }//end
-
-
