@@ -1,4 +1,4 @@
-//Proj_MES-FES_Interface - Version 1.1 arduino UNO/Nano 26 Out 2023 using bitalino sensor and tilt sensor//
+//Proj_MES-FES_Interface - Version 1.1 arduino UNO/Nano 30 Nov 2023 using bitalino sensor and tilt sensor//
 //if upload error, use in linux terminal sudo chmod a+rw /dev/ttyUSB0
 //https://github.com/Joao-Pedro-ML/TCC/blob/main/Refactored/Refactored.ino
 
@@ -9,8 +9,8 @@
 char blueToothVal; 
 
 // tilt sensor
-int tilt = 2; // tilt sensor - adjust the sensitivity in embedded potentiometer 
-
+int tilt = 12; // tilt sensor - adjust the sensitivity in embedded potentiometer 
+int FSR = A6; // FSR sensor 
 //MES
 float MValue = 0;  //MES - Myo Electrical Signal
 float Voltage;
@@ -53,10 +53,11 @@ int time_on=121; //initial FES time (1s)
 float Tfreq = 50000; //20Hz - to FES rise time
 
 void setup() {
-  MValue = (analogRead(A7));  //MES
+  MValue = (analogRead(A0));  //MES
   pinMode(12, INPUT);
   pinMode(6, OUTPUT);  //LED red
-
+  
+  FSR = (analogRead(A6));  //FSR
   digitalWrite(6, HIGH);
   delay(1000);
   digitalWrite(6, LOW);
@@ -81,7 +82,7 @@ pinMode(10,OUTPUT); //FES_2
 void MES_00()  //read samples
 {
   for (int i = 0; i < 50; i++) {
-    MValue = (analogRead(A7));
+    MValue = (analogRead(A0));
     Voltage = ((((3.3 / 1024.0) * (MValue))));
     filteredval[i] = fLP.filterIn(Voltage);
     filteredval[i] = fHP.filterIn(filteredval[i]);
@@ -117,7 +118,7 @@ MES_X = (MES01+MES02+MES03+MES04+MES05)/10; //must be adjusted to each MES senso
 //JJJ sensor divide 100, Bitalino sensor divide 1.
 // values must be between 1 and 3 during rest and greater than 10 during contraction.
 
-tilt = digitalRead(2);
+tilt = digitalRead(12);
 }
 
 void fes_r(){
@@ -177,6 +178,7 @@ digitalWrite(6, LOW);}
 
 void loop()
 { 
+ 
 if(Serial.available())
 {blueToothVal=Serial.read();}
 
@@ -193,6 +195,7 @@ MES_002A=MES_X;//50ms
 MES_00();
 MES_002B=MES_X;//50ms
 MES2=(MES_002A+MES_002B)/2;
+FSR = (analogRead(A6));  //FSR
 
 //configure moving threshold 
 th = (1+(difficult/100)); 
@@ -209,11 +212,15 @@ else {digitalWrite(6, LOW);}//LED red
 Serial.print(MESth);
 Serial.print(" ");
 Serial.println(MES2);
+Serial.print(" ");
+Serial.println(FSR);
 
 
 
-if (MES2 >= MESth && MES2 <= 60 && flag==0 && MESth > 0.3 && MES2 >= 0.4 && tilt == 0)//01/17/2023 REMOVED "&& MES2 <= 2*MESth"
+
+if (MES2 >= MESth && MES2 <= 60 && flag==1 && MESth > 0.3 && MES2 >= 0.36 && tilt == 0)//01/17/2023 REMOVED "&& MES2 <= 2*MESth"
 {
+
 //digitalWrite(6, LOW);//LED red - off
 Serial.write('p');//To App inventor
 Serial.write('p');//To App inventor
@@ -223,6 +230,7 @@ Serial.write('p');//To App inventor
 Serial.write('p');//To App inventor
 Serial.write('p');//To App inventor
 Serial.write('p');//To App inventor
+Serial.end();
 //FES rise time
 {
 fes_r();
@@ -244,6 +252,7 @@ flag=0;
 time_on=time_on;
 cont=1;
 }}digitalWrite(6, LOW); //red led off
+Serial.begin(9600);
 Serial.write('o');//To App inventor
 Serial.write('o');//To App inventor
 Serial.write('o');//To App inventor
@@ -253,12 +262,17 @@ Serial.write('o');//To App inventor
 Serial.write('o');//To App inventor
 Serial.write('o');//To App inventor
 MES2 = 0;
+MES01 = 0 ;
+MES02 = 0;
+MES03 = 0;
+MES04 = 0;
+MES05 = 0;
 delay(4000); //Do not remove, or the FES interference will create an infinity loop.
 }
 
 //PWM increase
 if (blueToothVal=='v' && flag==0)
-{intensity=intensity+25; // keep 5 to great amplifier and 100 to small. 
+{intensity=intensity+15; // keep 5 to great amplifier and 100 to small. 
 digitalWrite(6, HIGH); //red led
 delay(50);
 digitalWrite(6, LOW);
@@ -266,7 +280,7 @@ blueToothVal=0;}
 
 //PWM decrease
 if (blueToothVal=='c' && flag==0)
-{intensity=intensity-25; // keep 5 to great amplifier and 100 to small. 
+{intensity=intensity-15; // keep 5 to great amplifier and 100 to small. 
 if(intensity <=4)
 {intensity= 1;}
 digitalWrite(6, HIGH); //red led
