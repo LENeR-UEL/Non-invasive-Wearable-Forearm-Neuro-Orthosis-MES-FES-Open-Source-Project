@@ -1,13 +1,14 @@
-//Proj_MES-FES_Interface - Version 1.1 esp32 - 30 Jul 2024 using bitalino sensor, boost (DC-DC) and tilt sensor
-
+//Proj_MES-FES_Interface - Version 1.1 esp32 - 7 out 2024 using bitalino sensor and tilt sensor
 //No buffer to MES
+//Warning Remember in ARduino IDE V2 downgrade to board version 2.0. (old) to work!!!
+              
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <math.h>
 #include "BluetoothSerial.h"
 #include <filters.h>  // available in: https://github.com/MartinBloedorn/libFilter
 
-//Boost // circuit available soon!
+//Boost
 #define PWM_PIN 25        // Pino de saída PWM
 #define PWM_FREQUENCY 40000  // Frequência de 40 kHz
 #define PWM_RESOLUTION 8    // Resolução de 8 bits
@@ -18,6 +19,7 @@ TaskHandle_t TaskHandle_0;
 char blueToothVal;
 float EMG = 34;
 BluetoothSerial BT;
+int led = 2;
 
 // tilt sensor
 int tilt = 14;  // tilt sensor - adjust the sensitivity in embedded potentiometer
@@ -73,35 +75,38 @@ Filter fLP(f2, sampling_time, order);          //configure low pass filter (10 H
 
 //FES
 float th = 2000;    //Initial Threshold - to do not trigger
-int intensity = 1;  //Initial PWM - FES intensity
+int intensity = 0;  //Initial PWM - FES intensity
 int flag = 0;
 int cont = 1;
 int time_on = 121;    //initial FES time (1s)
 float Tfreq = 50000;  //20Hz - to FES rise time
+int H1 = 26;
+int H2 = 27;
+
 
 void setup() {
   MValue = (analogRead(EMG));  //MES
-  pinMode(14, INPUT);          //Tilt
-  pinMode(2, OUTPUT);          //LED red
-
-  digitalWrite(2, HIGH);
-  delay(1000);
-  digitalWrite(2, LOW);
-  delay(1000);
-  digitalWrite(2, HIGH);
-  delay(1000);
-  digitalWrite(2, LOW);
-  delay(1000);
-  digitalWrite(2, HIGH);
-  delay(1000);
-  digitalWrite(2, LOW);
+  pinMode(tilt, INPUT);          //Tilt
+  pinMode(led, OUTPUT);          //LED red
+  
+  // digitalWrite(led, HIGH);
+  // delay(1000);
+  // digitalWrite(led, LOW);
+  // delay(1000);
+  // digitalWrite(led, HIGH);
+  // delay(1000);
+  // digitalWrite(led, LOW);
+  // delay(1000);
+  // digitalWrite(led, HIGH);
+  // delay(1000);
+  // digitalWrite(led, LOW);
 
   Serial.begin(9600);  //Initialize Serial Monitor
-  BT.begin("Proj_A_esp32");
+  BT.begin("Neuro-órtese_AFC_01");
 
   //FES to H bridge
-  pinMode(12, OUTPUT);   //FES_1
-  pinMode(13, OUTPUT);  //FES_2
+  pinMode(H1, OUTPUT);   //FES_1
+  pinMode(H2, OUTPUT);  //FES_2
 
  //Boost Édino Jul 2024
  // Cria a tarefa no core 0 para gerar a onda PWM
@@ -307,66 +312,66 @@ void MES_00()  //read samples
 
 
   //MES_X - create average 20ms (like root mean square)
-  MES_X = (MES01 + MES02) / 100;  //must be adjusted to each MES sensor.
+  MES_X = (MES01 + MES02) / 20; //adjusted AD 8232 ECG. 20 is good
 //bitalino /100
   // values must be between 1 and 3 during rest and greater than 10 during contraction.
 
-  tilt = digitalRead(14);
+ 
 }
 
 void fes_r() {
   for (float Tfreq = 50000; Tfreq >= 25000; Tfreq = Tfreq - 937.5)  //Rise 20Hz to 40Hz
   {
-    digitalWrite(2, HIGH);  //red led on
-    digitalWrite(12, HIGH);
-    digitalWrite(13, LOW);
+    digitalWrite(led, HIGH);  //red led on
+    digitalWrite(H1, HIGH);
+    digitalWrite(H2, LOW);
     delayMicroseconds(intensity);
-    digitalWrite(12, LOW);
-    digitalWrite(13, LOW);
+    digitalWrite(H1, LOW);
+    digitalWrite(H2, LOW);
     delayMicroseconds(10);  //interpulse 10us off time
-    digitalWrite(13, HIGH);
-    digitalWrite(12, LOW);
+    digitalWrite(H2, HIGH);
+    digitalWrite(H1, LOW);
     delayMicroseconds(intensity);
-    digitalWrite(13, LOW);
-    digitalWrite(12, LOW);
+    digitalWrite(H2, LOW);
+    digitalWrite(H1, LOW);
     delayMicroseconds((Tfreq - intensity) - (intensity));
   }  //Serial.print("RISE");
 }
 
 void fes_on() {
   Tfreq = 25000;  //keep frequency in 40Hz
-  digitalWrite(12, HIGH);
-  digitalWrite(13, LOW);
+  digitalWrite(H1, HIGH);
+  digitalWrite(H2, LOW);
   delayMicroseconds(intensity);
-  digitalWrite(12, LOW);
-  digitalWrite(13, LOW);
+  digitalWrite(H1, LOW);
+  digitalWrite(H2, LOW);
   delayMicroseconds(10);  //interpulse 10us off time
-  digitalWrite(13, HIGH);
-  digitalWrite(12, LOW);
+  digitalWrite(H2, HIGH);
+  digitalWrite(H1, LOW);
   delayMicroseconds(intensity);
-  digitalWrite(13, LOW);
-  digitalWrite(12, LOW);
+  digitalWrite(H2, LOW);
+  digitalWrite(H1, LOW);
   delayMicroseconds((Tfreq - intensity) - (intensity));
 }
 
 void fes_d() {
   for (float Tfreq = 25000; Tfreq >= 50000; Tfreq = Tfreq + 937.5)  //Decay 40Hz to 20Hz
   {
-    digitalWrite(12, HIGH);
-    digitalWrite(13, LOW);
+    digitalWrite(H1, HIGH);
+    digitalWrite(H2, LOW);
     delayMicroseconds(intensity);
-    digitalWrite(12, LOW);
-    digitalWrite(13, LOW);  //interpulse 10us off time
+    digitalWrite(H1, LOW);
+    digitalWrite(H2, LOW);  //interpulse 10us off time
     delayMicroseconds(10);
-    digitalWrite(13, HIGH);
-    digitalWrite(12, LOW);
+    digitalWrite(H2, HIGH);
+    digitalWrite(H1, LOW);
     delayMicroseconds(intensity);
-    digitalWrite(13, LOW);
-    digitalWrite(12, LOW);
+    digitalWrite(H2, LOW);
+    digitalWrite(H1, LOW);
     delayMicroseconds((Tfreq - intensity) - (intensity));
 
   }  //Serial.print("DECAY");
-  digitalWrite(2, LOW);
+  digitalWrite(led, LOW);
 }
 
 void loop() {
@@ -396,29 +401,30 @@ void loop() {
 
     //check "impedance" - if MES1 > 10, the red led will be on to warning about the impedance
     if (MES1 > 10) {
-      digitalWrite(2, HIGH);
+      digitalWrite(led, HIGH);
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       delay(50);
     }                               //LED red
-    else {digitalWrite(2, LOW); }  //LED red
+    else {digitalWrite(led, LOW); }  //LED red
 
     BT.print(MESth);
     BT.print(" ");
     BT.println(MES2);
-
-    if (MES2 >= MESth && MES2 <= 60 && flag == 0 && MESth > 3 && MES2 >= 3 && tilt == 0)  //01/17/2023 REMOVED "&& MES2 <= 2*MESth"
+    tilt = digitalRead(14); // tilt
+    //BT.print(tilt);
+    if (MES2 >= 3 && MESth >= 3 && MES2 >= MESth && flag == 0 && MES2 <= 60 && tilt == 0)  //01/17/2023 REMOVED "&& MES2 <= 2*MESth" -- 
     {
-      //digitalWrite(2, LOW);//LED red - off
+      //digitalWrite(led, LOW);//LED red - off
       vTaskResume(TaskHandle_0);
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
-      BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
+      // BT.write('p');  //To App inventor
       //FES rise time
       
       {
@@ -441,58 +447,59 @@ void loop() {
           cont = 1;
         }
       }
-      digitalWrite(2, LOW);  //red led off
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
-      BT.write('o');         //To App inventor
+      digitalWrite(led, LOW);  //red led off
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
+      // BT.write('o');         //To App inventor
       MES2 = 0;
    //boost
   
      vTaskSuspend(TaskHandle_0);
      ledcWrite(PWM_CHANNEL,0); // Para a onda PWM imediatamente
    //--
-      delay(4000);  //Do not remove, or the FES interference will create an infinity loop.
+      delay(1000);  //Do not remove, or the FES interference will create an infinity loop.
     }
 
     //PWM increase
     if (blueToothVal == 'v' && flag == 0) {
       intensity = intensity + 10;  // keep 5 to great amplifier and 100 to small.
-      digitalWrite(2, HIGH);       //red led
+      if (intensity >= 200) { intensity = 200;}
+      digitalWrite(led, HIGH);       //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 
     //PWM decrease
     if (blueToothVal == 'c' && flag == 0) {
       intensity = intensity - 10;  // keep 5 to great amplifier and 100 to small.
-      if (intensity <= 4) { intensity = 1; }
-      digitalWrite(2, HIGH);  //red led
+      if (intensity <= 0) { intensity = 0; }
+      digitalWrite(led, HIGH);  //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 
     //PWM STOP
     if (blueToothVal == 'x' && flag == 0) {
-      intensity = 1;
-      digitalWrite(2, HIGH);  //red led
+      intensity = 0;
+      digitalWrite(led, HIGH);  //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 
     //ON time increase
     if (blueToothVal == 'd' && flag == 0) {
       time_on += 25;
-      digitalWrite(2, HIGH);  //red led
+      digitalWrite(led, HIGH);  //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 
@@ -500,18 +507,18 @@ void loop() {
     if (blueToothVal == 's' && flag == 0) {
       time_on -= 25;
       if (time_on < 0) { time_on = 0; }
-      digitalWrite(2, HIGH);  //red led
+      digitalWrite(led, HIGH);  //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 
     //difficult increase
     if (blueToothVal == 'g' && flag == 0) {
       difficult += 1;         //adjusted to post stroke subject
-      digitalWrite(2, HIGH);  //red led
+      digitalWrite(led, HIGH);  //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 
@@ -519,9 +526,9 @@ void loop() {
     if (blueToothVal == 'f' && flag == 0) {
       difficult -= 1;
       if (difficult <= 1) { difficult = 1; }
-      digitalWrite(2, HIGH);  //red led
+      digitalWrite(led, HIGH);  //red led
       delay(50);
-      digitalWrite(2, LOW);
+      digitalWrite(led, LOW);
       blueToothVal = 0;
     }
 //}
